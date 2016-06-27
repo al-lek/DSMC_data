@@ -11,7 +11,6 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Runtime.Serialization.Formatters.Binary;
 
-
 using OxyPlot;
 using OxyPlot.Series;
 using OxyPlot.Annotations;
