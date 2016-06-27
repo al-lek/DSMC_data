@@ -172,7 +172,6 @@ namespace DSMC_data_manipulation
             P_lbl.Text = "P: " + Math.Round((P.Min()), 2).ToString() + "__" + Math.Round((P.Average()), 2).ToString() + "__" + Math.Round((P.Max()), 2).ToString() + " mbar";
             T_lbl.Text = "T: " + Math.Round((T.Min()), 2).ToString() + "__" + Math.Round((T.Average()), 2).ToString() + "__" + Math.Round((T.Max()), 2).ToString() + " K";
         }
-
         #endregion
 
         #region construct grids, assign particles, calculate stats
