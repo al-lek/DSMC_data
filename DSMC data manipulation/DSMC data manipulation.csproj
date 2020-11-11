@@ -34,6 +34,42 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Arction.DirectX, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.DirectX.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.DirectXFiles, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.DirectXFiles.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.DirectXInit, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.DirectXInit.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.Licensing, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.Licensing.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.RenderingDefinitions, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.RenderingDefinitions.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.RenderingEngine, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.RenderingEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.RenderingEngine11, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.RenderingEngine11.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.RenderingEngine9, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.RenderingEngine9.dll</HintPath>
+    </Reference>
+    <Reference Include="Arction.WinForms.Charting.LightningChartUltimate, Version=7.2.1.4001, Culture=neutral, PublicKeyToken=6484d7bb14b95dd3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libs\Arction.WinForms.Charting.LightningChartUltimate.dll</HintPath>
+    </Reference>
     <Reference Include="OxyPlot, Version=1.0.0.0, Culture=neutral, PublicKeyToken=638079a8f0bd61e9, processorArchitecture=MSIL">
       <HintPath>..\packages\OxyPlot.Core.1.0.0-unstable2100\lib\net45\OxyPlot.dll</HintPath>
       <Private>True</Private>
@@ -54,6 +90,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Charting.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -88,6 +125,17 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Libs\Arction.DirectX.dll" />
+    <Content Include="Libs\Arction.DirectXFiles.dll" />
+    <Content Include="Libs\Arction.DirectXInit.dll" />
+    <Content Include="Libs\Arction.Licensing.dll" />
+    <Content Include="Libs\Arction.RenderingDefinitions.dll" />
+    <Content Include="Libs\Arction.RenderingEngine.dll" />
+    <Content Include="Libs\Arction.RenderingEngine11.dll" />
+    <Content Include="Libs\Arction.RenderingEngine9.dll" />
+    <Content Include="Libs\Arction.WinForms.Charting.LightningChartUltimate.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

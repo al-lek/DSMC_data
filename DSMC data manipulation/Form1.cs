@@ -16,6 +16,16 @@ using OxyPlot.Series;
 using OxyPlot.Annotations;
 using OxyPlot.WindowsForms;
 
+using Arction.WinForms.Charting;
+using Arction.WinForms.Charting.Axes;
+using Arction.WinForms.Charting.SeriesXY;
+using Arction.WinForms.Charting.EventMarkers;
+using Arction.WinForms.Charting.Titles;
+using Arction.WinForms.Charting.Views.ViewXY;
+using Arction.WinForms.Charting.Series3D;
+using Arction.WinForms.Charting.Views.View3D;
+
+
 namespace DSMC_data_manipulation
 {
     public partial class Form1 : Form
@@ -478,7 +488,10 @@ namespace DSMC_data_manipulation
 
         private void plotRaw_btn_Click(object sender, EventArgs e)
         {
-            initialize_oxyPlotWindow();
+            //initialize_oxyPlotWindow();
+
+            Charting ch = new Charting();
+            ch.Initialize_plot();
         }
 
         private void initialize_oxyPlotWindow()
@@ -511,10 +524,10 @@ namespace DSMC_data_manipulation
 
             PlotModel oxyModelPlot = new PlotModel { PlotType = PlotType.XY, IsLegendVisible = true, LegendPosition = LegendPosition.BottomLeft, LegendFontSize = 11, TitleFontSize = 11 };
 
-            var linearAxis1 = new OxyPlot.Axes.LinearAxis() { MajorGridlineStyle = LineStyle.Solid, Title = "Y [mm]", MinorGridlineStyle = LineStyle.Solid, Maximum = Y.Max() };
+            var linearAxis1 = new OxyPlot.Axes.LinearAxis() { MajorGridlineStyle = OxyPlot.LineStyle.Solid, Title = "Y [mm]", MinorGridlineStyle = OxyPlot.LineStyle.Solid, Maximum = Y.Max() };
             oxyModelPlot.Axes.Add(linearAxis1);
 
-            var linearAxis2 = new OxyPlot.Axes.LinearAxis() { MajorGridlineStyle = LineStyle.Solid, Title = "X [mm]", Position = OxyPlot.Axes.AxisPosition.Bottom, Maximum = X.Max() };
+            var linearAxis2 = new OxyPlot.Axes.LinearAxis() { MajorGridlineStyle = OxyPlot.LineStyle.Solid, Title = "X [mm]", Position = OxyPlot.Axes.AxisPosition.Bottom, Maximum = X.Max() };
             oxyModelPlot.Axes.Add(linearAxis2);
 
             oxyPlotView.Model = oxyModelPlot;
