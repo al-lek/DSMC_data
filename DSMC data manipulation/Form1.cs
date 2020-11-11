@@ -27,11 +27,20 @@ namespace DSMC_data_manipulation
         List<double> P = new List<double>(); List<double> T = new List<double>();
         double gridStep, maxX, maxY, maxZ;
         Int64 paX, paY, paZ;
-        bool D2 = false, D3 = false;
+        bool D2 = false, D3_full = false, D3_partial = false; 
         object[][] Ux_2d, Uy_2d, Uz_2d, P_2d, T_2d;
         double[][][] Ux_3d, Uy_3d, Uz_3d, P_3d, T_3d;
         Random rand = new Random();
-        string header;
+        int large_radius = 0;
+        int large_zPos = 0;
+
+        double[,] ionCloud;
+        List<double[]> splated;
+        List<double> cloudStats = new List<double>();
+
+        // notes //
+        // 1. crop is dirty, works only before loading data
+        // 2. drawing?
 
         public Form1()
         {
@@ -56,7 +65,7 @@ namespace DSMC_data_manipulation
 
             gridStep = maxX = maxY = maxZ = 0;
             paX = paY = paZ = 0;
-            D2 = D3 = false;
+            D2 = D3_full = D3_partial = false;
 
             //Ux_2d.Initialize();
 
@@ -103,12 +112,42 @@ namespace DSMC_data_manipulation
             while (objReader.Peek() != -1);
             objReader.Close(); objReader.Dispose();
 
+            // determine solver
+            string solver = "";
+            if (path.EndsWith(".dat") || path.EndsWith(".DAT")) solver = "sparta";
+            else if (path.EndsWith(".csv") || path.EndsWith(".CSV")) solver = "cfx";
+
+            // determine if it has a header
+            // 
+            int data_start_line_no = 0;
+            double num;
+            string[] header_line; 
+
+            for (int k = 0; k < data.Count; k++)
+            {
+                header_line = data[k].Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+                // get rid of empty lines
+                if (header_line.Length == 0) { continue; }          
+
+                else if (header_line[0] == "X" || header_line[0] == "x")
+                {
+                    // resolve collumns assignments
+
+                }
+
+                // find where data start
+                else if (double.TryParse(header_line[0], out num)) { data_start_line_no = k; break; }
+            }
+
             // determine if it is 2d or 3d data
             // 2d is 7 collumns, 3d is 8 collumns
 
-            string[] dataStruct = data[0].Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] dataStruct = data[data_start_line_no].Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (dataStruct.Length == 7) D2 = true;
-            else if (dataStruct.Length == 8) D3 = true;
+            else if (dataStruct.Length == 8 && solver == "cfx" && Convert.ToDouble(dataStruct[2]) == 0.0) D2 = true;
+            else if (dataStruct.Length == 8 && solver == "cfx" && Convert.ToDouble(dataStruct[2]) != 0.0) D3_partial = true;
+            else if (dataStruct.Length == 8) D3_full = true;
             else { MessageBox.Show("Wrong file format. "); return; }
 
             int line_no = 0;    //used to trace line error
@@ -116,29 +155,44 @@ namespace DSMC_data_manipulation
             try
             {
                 change_status("Busy: Resolving data.");
+                double tempX, tempY, tempZ = -1;
+                double xCrop = 1e-3 * Convert.ToDouble(xCrop_txtBox.Text), yCrop = 1e-3 * Convert.ToDouble(yCrop_txtBox.Text), zCrop = 1e-3 * Convert.ToDouble(zCrop_txtBox.Text);
 
-                for (int k = 0; k < data.Count; k++)
+                // karfwta oi stiles
+                int x_col = -1, y_col = -1, z_col = -1, ux_col = -1, uy_col = -1, uz_col = -1, p_col = -1, t_col = -1;
+
+                if (solver == "sparta" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 2; uy_col = 3; uz_col = 4; p_col = 5; t_col = 6; }
+                else if (solver == "sparta" && D3_full) { x_col = 0; y_col = 1; z_col = 2; ux_col = 3; uy_col = 4; uz_col = 5; p_col = 6; t_col = 7; }
+                else if (solver == "cfx" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
+                else if (solver == "cfx" && D3_partial) { x_col = 0; y_col = 1; z_col = 2; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
+
+                for (int k = data_start_line_no; k < data.Count; k++)
                 {
                     line_no = k;
                     string[] temp = data[line_no].Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
-                    if (temp[0] == "X") { header = data[line_no]; continue; }       // skip header, if existing
+                    bool point_to_be_ommited = false;
+                    
+                    // raise a flag to ignore data out of croped region
+                    if (crop_chkBox.Checked)
+                    {
+                        tempX = Convert.ToDouble(temp[x_col]); tempY = Convert.ToDouble(temp[y_col]);
+                        if(D3_full || D3_partial) tempZ = Convert.ToDouble(temp[z_col]); 
 
-                    if (D2)
-                    {
-                        X.Add(Convert.ToDouble(temp[0])); Y.Add(Convert.ToDouble(temp[1]));
-                        UX.Add(Convert.ToDouble(temp[2])); UY.Add(Convert.ToDouble(temp[3])); UZ.Add(Convert.ToDouble(temp[4]));
-                        P.Add(Convert.ToDouble(temp[5])); T.Add(Convert.ToDouble(temp[6]));
-                    }
-                    else
-                    {
-                        X.Add(Convert.ToDouble(temp[0])); Y.Add(Convert.ToDouble(temp[1])); Z.Add(Convert.ToDouble(temp[2]));
-                        UX.Add(Convert.ToDouble(temp[3])); UY.Add(Convert.ToDouble(temp[4])); UZ.Add(Convert.ToDouble(temp[5]));
-                        P.Add(Convert.ToDouble(temp[6])); T.Add(Convert.ToDouble(temp[7]));
+                        if (tempX > xCrop || tempY > yCrop) point_to_be_ommited = true;
+                        else if ((D3_full || D3_partial) && tempZ > zCrop) point_to_be_ommited = true;
                     }
 
-                    if (k%1000 == 0)
-                        this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));
+                    if (!point_to_be_ommited)
+                    {
+                        X.Add(Convert.ToDouble(temp[x_col])); Y.Add(Convert.ToDouble(temp[y_col]));
+                        UX.Add(Convert.ToDouble(temp[ux_col])); UY.Add(Convert.ToDouble(temp[uy_col])); UZ.Add(Convert.ToDouble(temp[uz_col]));
+                        P.Add(Convert.ToDouble(temp[p_col])); T.Add(Convert.ToDouble(temp[t_col]));
+                        if ((D3_full || D3_partial)) Z.Add(Convert.ToDouble(temp[z_col]));
+                    }
+                    
+                    if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));
+                    
                 }
             }
             catch { MessageBox.Show("Error in parsing data. Line: " + line_no.ToString()); reset_toolStrip(); }
@@ -146,6 +200,9 @@ namespace DSMC_data_manipulation
             reset_toolStrip();
             this.Invoke(new Action(() => calculate_data_stats()));
             this.Invoke(new Action(() => calculate_pa_stats()));
+
+            change_status("Busy: Transforming all coordinates to positive values.");
+            repair_negative_coordinates();
         }
 
         private void calculate_data_stats()
@@ -153,7 +210,8 @@ namespace DSMC_data_manipulation
             show_stats(true);
 
             if (D2) dim_lbl.Text = "2D data";
-            else dim_lbl.Text = "3D data";
+            else if (D3_partial) dim_lbl.Text = "3D partial data";
+            else if (D3_full) dim_lbl.Text = "3D full data";
 
             totalParticles_lbl.Text = "Total particles: " + X.Count.ToString();
 
@@ -165,13 +223,14 @@ namespace DSMC_data_manipulation
             Y_lbl.Text = "Y: " + Math.Round((1000.0 * Y.Min()), 2).ToString() + "__" + Math.Round((1000.0 * Y.Average()), 2).ToString() + "__" + Math.Round((1000.0 * Y.Max()), 2).ToString() + " mm";
             UY_lbl.Text = "UY: " + Math.Round((UY.Min()), 2).ToString() + "__" + Math.Round((UY.Average()), 2).ToString() + "__" + Math.Round((UY.Max()), 2).ToString() + " m/s";
 
-            if (D3) { maxZ = Z.Max(); Z_lbl.Text = "Z: " + Math.Round((1000.0 * Z.Min()), 2).ToString() + "__" + Math.Round((1000.0 * Z.Average()), 2).ToString() + "__" + Math.Round((1000.0 * Z.Max()), 2).ToString() + " mm"; }
+            if (D3_full || D3_partial) { maxZ = Z.Max(); Z_lbl.Text = "Z: " + Math.Round((1000.0 * Z.Min()), 2).ToString() + "__" + Math.Round((1000.0 * Z.Average()), 2).ToString() + "__" + Math.Round((1000.0 * Z.Max()), 2).ToString() + " mm"; }
             else Z_lbl.Text = "Z: no data!";
             UZ_lbl.Text = "UZ: " + Math.Round((UZ.Min()), 2).ToString() + "__" + Math.Round((UZ.Average()), 2).ToString() + "__" + Math.Round((UZ.Max()), 2).ToString() + " m/s";
 
             P_lbl.Text = "P: " + Math.Round((P.Min()), 2).ToString() + "__" + Math.Round((P.Average()), 2).ToString() + "__" + Math.Round((P.Max()), 2).ToString() + " mbar";
             T_lbl.Text = "T: " + Math.Round((T.Min()), 2).ToString() + "__" + Math.Round((T.Average()), 2).ToString() + "__" + Math.Round((T.Max()), 2).ToString() + " K";
         }
+
         #endregion
 
         #region construct grids, assign particles, calculate stats
@@ -180,7 +239,7 @@ namespace DSMC_data_manipulation
         {
             gridStep = Convert.ToDouble(gridStep_nud.Value);
 
-            if (D2)
+            if (D2 || D3_partial)
             {
                 symPA_lbl.Text = "Cylindrical";
                 paX = Convert.ToInt32(Math.Ceiling(1000.0 * maxY / gridStep) + 1);      // +1 is for compatibility with Simion
@@ -189,7 +248,7 @@ namespace DSMC_data_manipulation
 
                 paX_lbl.Text = "Y -> x[gu]: " + paX.ToString(); paY_lbl.Text = "Y -> y[gu]: " + paY.ToString(); paZ_lbl.Text = "X -> z[gu]: " + paZ.ToString();
             }
-            else if (D3)
+            else if (D3_full)
             {
                 symPA_lbl.Text = "3D";
                 paX = Convert.ToInt32(Math.Ceiling(1000.0 * maxZ / gridStep) + 1);
@@ -220,18 +279,50 @@ namespace DSMC_data_manipulation
             // 1. assign particles to grid
             show_progress(true);
             change_status("Busy: Maping particles to grid.");
-            if (D2) map_particles_to_2DgridPoins();
-            if (D3) map_particles_to_3DgridPoins();
+            if (D2 || D3_partial) map_particles_to_2DgridPoins();
+            if (D3_full) map_particles_to_3DgridPoins();
             show_progress(false);
 
             // 2. convert (rotate) 2D -> 3D
-            if (D2) { change_status("Busy: Converting from 2D to 3D."); convert_2D_to_3D(); }
+            if (D2 || D3_partial) { change_status("Busy: Converting from 2D to 3D."); convert_2D_to_3D(); }
             
+            change_status("Idle.");
+
+            if (large_radius + large_zPos != 0) Console.WriteLine("large_radius" + large_radius.ToString() + "large_zPos" + large_zPos.ToString());
+        }
+
+        private void repair_negative_coordinates()
+        {
+            // if negative dimensions exist, shift all coordinates to only positive valaues 
+            double x_min = X.Min(), y_min = Y.Min(), z_min = Z.Min();
+
+            if (x_min < 0 || y_min < 0 || z_min < 0)
+            {
+                if (MessageBox.Show("Negative coordinates detected. Shift all points to positive values?", "Confirm transform", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    x_min = Math.Abs(x_min); y_min = Math.Abs(y_min); z_min = Math.Abs(z_min);
+
+                    for (int k = 0; k < X.Count; k++)
+                    {
+                        X[k] += x_min; Y[k] += y_min; Z[k] += z_min;
+
+                        if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count));
+                    }
+                }
+            }
+
+            // have to recalculate all stats, especially for PA dimensions
+            this.Invoke(new Action(() => calculate_data_stats()));
+            this.Invoke(new Action(() => calculate_pa_stats()));
+
             change_status("Idle.");
         }
                 
         private void map_particles_to_2DgridPoins()
         {
+            large_radius = 0; // mesures particles that fall outside maxY beacuse they have a large z. This happens because data are not a cylindrical sector, but a triangle.
+            large_zPos = 0; // brute drop particles? or larger z?
+
             // 1. Create a 2D array of lists. Each list corresponds to a grid point,
             // and will hold all particles that are in the vicinity of the gridPoint.
             // X -> Z, Y -> X,Y
@@ -249,8 +340,13 @@ namespace DSMC_data_manipulation
             // 2. run through each point and find the appropriate gridPoint to map it in 2D
             for (int k = 0; k < X.Count; k++)       
             {
-                int xPos = Convert.ToInt32(Math.Floor(Y[k] / gridStep * 1000.0));
+                int xPos = 0;
+                if (D2) xPos = Convert.ToInt32(Math.Floor(Y[k] / gridStep * 1000.0));
+                if (D3_partial) xPos = Convert.ToInt32(Math.Floor(Math.Sqrt(Math.Pow(Y[k] / gridStep * 1000.0, 2) + Math.Pow(Z[k] / gridStep * 1000.0, 2))));
                 int zPos = Convert.ToInt32(Math.Floor(X[k] / gridStep * 1000.0));
+
+                if (xPos >= Ux_2d.Count()) { large_radius++; continue; }
+                if (zPos >= Ux_2d[0].Count()) { large_zPos++; continue; }
 
                 ((List<double>)Ux_2d[xPos][zPos]).Add(UY[k]);
                 ((List<double>)Uy_2d[xPos][zPos]).Add(UZ[k]);
@@ -260,6 +356,9 @@ namespace DSMC_data_manipulation
 
                 if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count));
             }
+
+            // 2.1 detect if there are any empty gridPoints. This will happen in very high resolution (100μm) and will cause errors (NaN points) in the PAs
+            //correct_empty_gridPoints(Ux_2d); correct_empty_gridPoints(Uy_2d); correct_empty_gridPoints(Uz_2d); correct_empty_gridPoints(P_2d); correct_empty_gridPoints(T_2d);
 
             // 3. get the stats for each gridPoint (from all the assigned particles), clear particles, and assign stats to each gridPoint (avg, std) 
             double[] stats = new double[2];
@@ -316,7 +415,8 @@ namespace DSMC_data_manipulation
                 P_3d[xPos][yPos][zPos] += P[k]; P_3d_count[xPos][yPos][zPos] += 1;
                 T_3d[xPos][yPos][zPos] += T[k]; T_3d_count[xPos][yPos][zPos] += 1;
 
-                if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count));
+                //try { if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count)); }
+                //catch { }
             }
 
 
@@ -335,7 +435,7 @@ namespace DSMC_data_manipulation
                     }
                 }
 
-                this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * i) / Convert.ToInt32(paX)));
+                //this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * i) / Convert.ToInt32(paX)));
             }
         }
 
@@ -382,6 +482,37 @@ namespace DSMC_data_manipulation
             Ux_2d = new object[0][]; Uy_2d = new object[0][]; Uz_2d = new object[0][]; P_2d = new object[0][]; T_2d = new object[0][];
         }
 
+        private void correct_empty_gridPoints(object[][] data)
+        {
+            // 
+            int countBlancs = 0, countNaN = 0;
+
+            for (int i = 0; i < data.GetLength(0); i++)
+                for (int j = 0; j < data[i].GetLength(0); j++)
+                {
+                    if (((List<double>)data[i][j]).Count == 0)
+                    {
+                        countBlancs++;
+                        ((List<double>)data[i][j]).Add(5.5);
+                    }
+
+                    if (double.IsNaN(((List<double>)data[i][j])[0]))
+                        countNaN++;
+                }
+
+            Console.WriteLine("total blancs detected: " + countBlancs.ToString() + " total NaNs: " + countNaN.ToString());
+        }
+
+        private double nearestNeighboors(object map2d, int x, int y)
+        {
+            double res = 0.0;
+
+
+
+
+            return res;
+        }
+
         #endregion
 
         #region export 3D arrays to EPA and PA
@@ -405,6 +536,8 @@ namespace DSMC_data_manipulation
 
             double[] epa = merge_velocities(Ux_1d, Uy_1d, Uz_1d);
 
+            check1d_integrity(Ux_1d); check1d_integrity(Uy_1d); check1d_integrity(Uz_1d); check1d_integrity(P_1d); check1d_integrity(T_1d);
+
             // Clear memory?
             Ux_3d = new double[1][][]; Uy_3d = new double[0][][]; Uz_3d = new double[0][][]; P_3d = new double[0][][]; T_3d = new double[0][][]; 
 
@@ -422,16 +555,17 @@ namespace DSMC_data_manipulation
             // 3. write data to files
             change_status("Busy: Saving to file.");
             binaryWriter(".epa", header, epa);
-            binaryWriter("P.pa", header, P_1d);
-            binaryWriter("T.pa", header, T_1d);
+            binaryWriter("_P.pa", header, P_1d);
+            binaryWriter("_T.pa", header, T_1d);
 
             change_status("Idle.");
         }
 
         private void binaryWriter(string name, int[] header, double[] data)
         {
-            string fileName = Path.ChangeExtension(fullFileName, null) + name;
-            
+            string gridStep = "_" + (1 / gridStep_nud.Value).ToString("0.#") + "gu";
+            string fileName = Path.ChangeExtension(fullFileName, null) + gridStep + name;
+
             FileStream fs = new FileStream(fileName, FileMode.Create);
             BinaryWriter bw = new BinaryWriter(fs);
 
@@ -550,6 +684,13 @@ namespace DSMC_data_manipulation
             this.Invoke(new Action(() => status.Text = statusText));
         }
 
+        private void crop_chkBox_CheckedChanged(object sender, EventArgs e)
+        {
+            xCrop_txtBox.Enabled = yCrop_txtBox.Enabled = zCrop_txtBox.Enabled = crop_chkBox.Checked;
+
+            if (crop_chkBox.Checked) MessageBox.Show("First set maximum (crop) values for x and y,\r\nand then reload data to for the cropping to take effect!");
+        }
+
         private void show_progress(bool visible)
         {
             this.Invoke(new Action(() => toolStripProgressBar1.Visible = visible));
@@ -586,13 +727,15 @@ namespace DSMC_data_manipulation
 
         private double[] Stats(IEnumerable<double> values)
         {
-            double avg = 0, std = 0;
-            if (values.Count() > 0)
+            double avg = 0.0, std = 0.0;
+            if (values.Count() > 1)
             {
                 avg = values.Average();
                 double sum = values.Sum(d => Math.Pow(d - avg, 2));
                 std = Math.Sqrt((sum) / (values.Count() - 1));
             }
+            else if (values.Count() == 1) avg = values.First();
+
             return new double[2] {avg, std};
         }
 
@@ -629,6 +772,58 @@ namespace DSMC_data_manipulation
 
             return res;
         }
+
+        private void check2d_integrity(object[][] data)
+        {
+            double min = 0.0, max = 0.0;
+            int errorNaN = 0, errorInf = 0;
+
+            for (int i = 0; i < data.GetLength(0); i++)
+                for (int j = 0; j < data[i].GetLength(0); j++)
+                {
+                    if (double.IsInfinity(((List<double>)data[i][j])[0])) errorInf++;
+                    if (double.IsNaN(((List<double>)data[i][j])[0])) errorNaN++;
+                    if (double.IsInfinity(((List<double>)data[i][j])[1])) errorInf++;
+                    if (double.IsNaN(((List<double>)data[i][j])[1])) errorNaN++;
+                }
+
+            Console.WriteLine("2D check: " + "error NaN: " + errorNaN.ToString() + "error Inf: " + errorInf.ToString());
+        }
+
+        private void check3d_integrity(double[][][] array)
+        {
+            double min = 0.0, max = 0.0;
+            int errorNaN = 0, errorInf = 0;
+
+            for (int i = 0; i < array.GetLength(0); i++)
+                for (int j = 0; j < array[i].GetLength(0); j++)
+                    for (int k = 0; k < array[i][j].GetLength(0); k++)
+                    {
+                        if (array[i][j][k] > max) max = array[i][j][k];
+                        if (array[i][j][k] < min) min = array[i][j][k];
+                        if (double.IsNaN(array[i][j][k])) errorNaN++;
+                        if (double.IsInfinity(array[i][j][k])) errorInf++;
+                    }
+
+            Console.WriteLine("3D check: " + "min: " + min.ToString() + "\t" + "max: " + max.ToString() + "error NaN: " + errorNaN.ToString() + "error Inf: " + errorInf.ToString());
+        }
+
+        private void check1d_integrity(double[] array)
+        {
+            double min = 0.0, max = 0.0;
+            int errorNaN = 0, errorInf = 0;
+
+            for (int i = 0; i < array.GetLength(0); i++)
+            {
+                if (array[i] > max) max = array[i];
+                if (array[i] < min) min = array[i];
+                if (double.IsNaN(array[i])) errorNaN++;
+                if (double.IsInfinity(array[i])) errorInf++;
+            }
+            
+            Console.WriteLine("1D check: " + "min: " + min.ToString() + "\t" + "max: " + max.ToString() + "error NaN: " + errorNaN.ToString() + "error Inf: " + errorInf.ToString());
+        }
+
         #endregion
 
         #region Test
@@ -643,11 +838,225 @@ namespace DSMC_data_manipulation
 
         private void test_btn_Click(object sender, EventArgs e)
         {
-            test();
+            import_ionCloud();
+            detect_splatIons(2.0);
+            getStats_splatIons();
+            process_splatIons(0.075);
+            export_splatIonsCloud("reBorn.ic8", false, false);
+            export_splatIonsCloud("reBorn_noRadial.ic8", true, false);
+
+            export_splatIonsCloud("1K_reBorn.ic8", true, true);
+            export_splatIonsCloud("1K_reBorn_noRadial.ic8", true, true);
         }
         #endregion
 
+        #region import and process ic8
+        private void import_ionCloud()
+        {
+            List<string> data = new List<string>();
+
+            // Set the path, and create if not existing 
+            string directoryPath = "C:\\Users\\Alex\\zoltan\\splat reruns";
+
+            OpenFileDialog loadSettings = new OpenFileDialog() { RestoreDirectory = true, InitialDirectory = directoryPath, Filter = "Ion Cloud|*.ic8|All files|*.*" };
+
+            if (loadSettings.ShowDialog() == DialogResult.OK)
+            {
+                change_status("Busy: Parsing data file.");
+
+                // 1. save and display filename
+                fullFileName = loadSettings.FileName;
+                this.Invoke(new Action(() => file_lbl.Text = loadSettings.SafeFileName));
+
+                // 2. start a background thread to load data
+                System.IO.StreamReader objReader;
+                objReader = new System.IO.StreamReader(fullFileName);
+
+                do { data.Add(objReader.ReadLine()); if (data.Count % 10 == 0) change_status("Busy: Parsing data file. Loaded ions: " + data.Count.ToString()); }
+                while (objReader.Peek() != -1);
+                objReader.Close(); objReader.Dispose();
+
+                show_progress(true);
+                int line_no = 0;
+                try
+                {
+                    change_status("Busy: Resolving data.");
+                    string[] temp = data[2].Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    ionCloud = new double[Convert.ToInt32(temp[2]),13];
+
+                    for (int k = 5; k < data.Count-1; k++)      // first 5 are header, last is "end"
+                    {
+                        line_no = k;
+
+                        temp = data[line_no].Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+                        for (int l = 2; l < 15; l++)
+                            ionCloud[k - 5, l-2] = Convert.ToDouble(temp[l]);
+
+                        if (k % 10 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));
+                    }
+                }
+                catch { MessageBox.Show("Error in parsing data. Line: " + line_no.ToString()); reset_toolStrip(); }
+                data.Clear();
+                reset_toolStrip();
+            }
+        }
+
+        private void detect_splatIons(double startTime)
+        {
+            cloudStats.Clear(); cloudStats.Add(0.0); cloudStats.Add(0.0);
+
+            // sort by z-pos
+            double[,] sortedIonCloud = ionCloud.OrderBy(x => x[3]);
+            double stopTime = sortedIonCloud[ionCloud.GetLength(0) - 1, 3] - 0.005;
+
+            splated = new List<double[]>();
+
+            // detect splats
+            for (int i = 0; i < ionCloud.GetLength(0); i++)
+                if (ionCloud[i, 3] < startTime)
+                    cloudStats[0]++;
+
+                else if (ionCloud[i, 3] > startTime && ionCloud[i, 3] < stopTime)
+                {
+                    double[] temp = new double[13];
+                    for (int j = 0; j < 13; j++)
+                        temp[j] = ionCloud[i, j];
+
+                    splated.Add(temp);
+                    cloudStats[1]++;
+                }
+
+            // sort by z-pos
+            splated = splated.OrderBy(arr => arr[6]).ToList();
+        }            
+
+        private void getStats_splatIons()
+        {
+            double tempZ = 0.0;
+            try { tempZ = Math.Round(splated[0][6], 3); }
+            catch { MessageBox.Show("No splat ions on object!"); Clipboard.SetText(cloudStats[0].ToString()); return; }
+
+            List<double> tempUz = new List<double>();
+            tempUz.Add(splated[0][9]);
+
+            for (int i = 1; i < splated.Count; i++)
+            {
+                if (Math.Round(splated[i][6], 3) != tempZ)
+                {
+                    cloudStats.Add(tempZ);
+                    cloudStats.AddRange(Stats(tempUz));
+
+                    tempZ = Math.Round(splated[i][6], 3);
+                    tempUz.Clear();
+                    tempUz.Add(splated[i][9]);
+                }
+                else
+                {
+                    tempUz.Add(splated[i][9]);
+                }
+            }
+            cloudStats.Add(tempZ);
+            cloudStats.AddRange(Stats(tempUz));
+
+
+            string stats = "";
+            foreach (double value in cloudStats)
+                stats += value.ToString() + "\t";
+
+            Clipboard.SetText(stats);
+        }
+
+        private void process_splatIons(double offset)
+        {
+            // shift them left by an offset and null their axial
+            for (int i = 0; i < splated.Count; i++)
+            {
+                splated[i][6] = splated[i][6] - offset;
+                splated[i][9] = 0.0;
+            }
+        }
+
+        private void export_splatIonsCloud(string extension, bool chopRadial, bool shiftMass)
+        {
+            string path = "";
+            if (shiftMass)
+                path = fullFileName.Remove(fullFileName.Length - 14) + extension;
+            else
+                path = fullFileName.Remove(fullFileName.Length - 9) + extension;
+
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(@path))
+            {
+                file.WriteLine("Version 2012.01.01  February 2012");
+                file.WriteLine("   Title  = All ions of Simulation");
+                file.WriteLine("   Nions  = " + splated.Count.ToString());
+                file.WriteLine("   Ntotal = " + splated.Count.ToString());
+                file.WriteLine("   Ions = ");
+                for (int i = 0; i < splated.Count; i++)
+                {
+                    file.Write("   " + (i+1).ToString() + " = ");
+
+                    for (int j = 0; j < 13; j++)
+                    {
+                        if ((shiftMass || chopRadial) && (j == 0 || j == 2 || j == 7 || j == 8 || j == 10))
+                        {
+                            if (shiftMass && j == 0) file.Write("1000" + ", ");         //mass
+                            if (shiftMass && j == 2) file.Write("389.7144445" + ", ");  //CS
+                            if (shiftMass && j == 10) file.Write("255" + ", ");         //color
+                            if (chopRadial && (j == 7 || j == 8)) file.Write("0.0" + ", ");     //Ux,Uy
+                        }
+
+                        else
+                            file.Write(splated[i][j].ToString() + ", ");
+                    }
+
+                    file.Write("\r\n");
+                }
+                file.WriteLine("   end");
+            }
+        }
+
+        #endregion
 
 
     }
+
+    public static class MultiDimensionalArrayExtensions
+    {
+        public static T[,] OrderBy<T>(this T[,] source, Func<T[], T> keySelector)
+        {
+            return source.ConvertToSingleDimension().OrderBy(keySelector).ConvertToMultiDimensional();
+        }
+        private static IEnumerable<T[]> ConvertToSingleDimension<T>(this T[,] source)
+        {
+            T[] arRow;
+
+            for (int row = 0; row < source.GetLength(0); ++row)
+            {
+                arRow = new T[source.GetLength(1)];
+
+                for (int col = 0; col < source.GetLength(1); ++col)
+                    arRow[col] = source[row, col];
+
+                yield return arRow;
+            }
+        }
+        private static T[,] ConvertToMultiDimensional<T>(this IEnumerable<T[]> source)
+        {
+            T[,] twoDimensional;
+            T[][] arrayOfArray;
+            int numberofColumns;
+
+            arrayOfArray = source.ToArray();
+            numberofColumns = (arrayOfArray.Length > 0) ? arrayOfArray[0].Length : 0;
+            twoDimensional = new T[arrayOfArray.Length, numberofColumns];
+
+            for (int row = 0; row < arrayOfArray.GetLength(0); ++row)
+                for (int col = 0; col < numberofColumns; ++col)
+                    twoDimensional[row, col] = arrayOfArray[row][col];
+
+            return twoDimensional;
+        }
+    }
+
 }
