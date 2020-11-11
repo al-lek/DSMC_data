@@ -33,7 +33,17 @@
             this.status = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripProgressBar1 = new System.Windows.Forms.ToolStripProgressBar();
             this.data_grpbox = new System.Windows.Forms.GroupBox();
-            this.plotRaw_btn = new System.Windows.Forms.Button();
+            this.crop_grpBox = new System.Windows.Forms.GroupBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
+            this.xCrop_txtBox = new System.Windows.Forms.TextBox();
+            this.zCrop_txtBox = new System.Windows.Forms.TextBox();
+            this.yCrop_txtBox = new System.Windows.Forms.TextBox();
+            this.crop_chkBox = new System.Windows.Forms.CheckBox();
+            this.zCrop_lbl = new System.Windows.Forms.Label();
+            this.xCrop_lbl = new System.Windows.Forms.Label();
+            this.yCrop_lbl = new System.Windows.Forms.Label();
             this.T_lbl = new System.Windows.Forms.Label();
             this.UZ_lbl = new System.Windows.Forms.Label();
             this.UY_lbl = new System.Windows.Forms.Label();
@@ -45,6 +55,7 @@
             this.totalParticles_lbl = new System.Windows.Forms.Label();
             this.file_lbl = new System.Windows.Forms.Label();
             this.dim_lbl = new System.Windows.Forms.Label();
+            this.plotRaw_btn = new System.Windows.Forms.Button();
             this.gridPA_grpBox = new System.Windows.Forms.GroupBox();
             this.exportPA_btn = new System.Windows.Forms.Button();
             this.symPA_lbl = new System.Windows.Forms.Label();
@@ -59,6 +70,7 @@
             this.test_btn = new System.Windows.Forms.Button();
             this.statusStrip1.SuspendLayout();
             this.data_grpbox.SuspendLayout();
+            this.crop_grpBox.SuspendLayout();
             this.gridPA_grpBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gridStep_nud)).BeginInit();
             this.SuspendLayout();
@@ -98,7 +110,7 @@
             // 
             // data_grpbox
             // 
-            this.data_grpbox.Controls.Add(this.plotRaw_btn);
+            this.data_grpbox.Controls.Add(this.crop_grpBox);
             this.data_grpbox.Controls.Add(this.T_lbl);
             this.data_grpbox.Controls.Add(this.UZ_lbl);
             this.data_grpbox.Controls.Add(this.UY_lbl);
@@ -111,22 +123,126 @@
             this.data_grpbox.Controls.Add(this.totalParticles_lbl);
             this.data_grpbox.Controls.Add(this.file_lbl);
             this.data_grpbox.Controls.Add(this.dim_lbl);
-            this.data_grpbox.Location = new System.Drawing.Point(12, 12);
+            this.data_grpbox.Location = new System.Drawing.Point(10, 12);
             this.data_grpbox.Name = "data_grpbox";
-            this.data_grpbox.Size = new System.Drawing.Size(335, 281);
+            this.data_grpbox.Size = new System.Drawing.Size(335, 332);
             this.data_grpbox.TabIndex = 2;
             this.data_grpbox.TabStop = false;
             this.data_grpbox.Text = "Data properties";
             // 
-            // plotRaw_btn
+            // crop_grpBox
             // 
-            this.plotRaw_btn.Location = new System.Drawing.Point(83, 234);
-            this.plotRaw_btn.Name = "plotRaw_btn";
-            this.plotRaw_btn.Size = new System.Drawing.Size(75, 23);
-            this.plotRaw_btn.TabIndex = 4;
-            this.plotRaw_btn.Text = "Plot RAW";
-            this.plotRaw_btn.UseVisualStyleBackColor = true;
-            this.plotRaw_btn.Click += new System.EventHandler(this.plotRaw_btn_Click);
+            this.crop_grpBox.Controls.Add(this.label4);
+            this.crop_grpBox.Controls.Add(this.label2);
+            this.crop_grpBox.Controls.Add(this.label1);
+            this.crop_grpBox.Controls.Add(this.xCrop_txtBox);
+            this.crop_grpBox.Controls.Add(this.zCrop_txtBox);
+            this.crop_grpBox.Controls.Add(this.yCrop_txtBox);
+            this.crop_grpBox.Controls.Add(this.crop_chkBox);
+            this.crop_grpBox.Controls.Add(this.zCrop_lbl);
+            this.crop_grpBox.Controls.Add(this.xCrop_lbl);
+            this.crop_grpBox.Controls.Add(this.yCrop_lbl);
+            this.crop_grpBox.Location = new System.Drawing.Point(6, 227);
+            this.crop_grpBox.Name = "crop_grpBox";
+            this.crop_grpBox.Size = new System.Drawing.Size(199, 99);
+            this.crop_grpBox.TabIndex = 5;
+            this.crop_grpBox.TabStop = false;
+            this.crop_grpBox.Text = "Crop control";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(171, 68);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(23, 13);
+            this.label4.TabIndex = 5;
+            this.label4.Text = "mm";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(171, 42);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(23, 13);
+            this.label2.TabIndex = 5;
+            this.label2.Text = "mm";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(171, 16);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(23, 13);
+            this.label1.TabIndex = 5;
+            this.label1.Text = "mm";
+            // 
+            // xCrop_txtBox
+            // 
+            this.xCrop_txtBox.Enabled = false;
+            this.xCrop_txtBox.Location = new System.Drawing.Point(133, 13);
+            this.xCrop_txtBox.Name = "xCrop_txtBox";
+            this.xCrop_txtBox.Size = new System.Drawing.Size(34, 20);
+            this.xCrop_txtBox.TabIndex = 5;
+            this.xCrop_txtBox.Text = "10";
+            this.xCrop_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // zCrop_txtBox
+            // 
+            this.zCrop_txtBox.Enabled = false;
+            this.zCrop_txtBox.Location = new System.Drawing.Point(133, 65);
+            this.zCrop_txtBox.Name = "zCrop_txtBox";
+            this.zCrop_txtBox.Size = new System.Drawing.Size(34, 20);
+            this.zCrop_txtBox.TabIndex = 5;
+            this.zCrop_txtBox.Text = "15";
+            this.zCrop_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // yCrop_txtBox
+            // 
+            this.yCrop_txtBox.Enabled = false;
+            this.yCrop_txtBox.Location = new System.Drawing.Point(133, 39);
+            this.yCrop_txtBox.Name = "yCrop_txtBox";
+            this.yCrop_txtBox.Size = new System.Drawing.Size(34, 20);
+            this.yCrop_txtBox.TabIndex = 5;
+            this.yCrop_txtBox.Text = "6";
+            this.yCrop_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // crop_chkBox
+            // 
+            this.crop_chkBox.AutoSize = true;
+            this.crop_chkBox.Location = new System.Drawing.Point(12, 41);
+            this.crop_chkBox.Name = "crop_chkBox";
+            this.crop_chkBox.Size = new System.Drawing.Size(77, 17);
+            this.crop_chkBox.TabIndex = 5;
+            this.crop_chkBox.Text = "Crop cloud";
+            this.crop_chkBox.UseVisualStyleBackColor = true;
+            this.crop_chkBox.CheckedChanged += new System.EventHandler(this.crop_chkBox_CheckedChanged);
+            // 
+            // zCrop_lbl
+            // 
+            this.zCrop_lbl.AutoSize = true;
+            this.zCrop_lbl.Location = new System.Drawing.Point(95, 68);
+            this.zCrop_lbl.Name = "zCrop_lbl";
+            this.zCrop_lbl.Size = new System.Drawing.Size(32, 13);
+            this.zCrop_lbl.TabIndex = 5;
+            this.zCrop_lbl.Text = "zMax";
+            // 
+            // xCrop_lbl
+            // 
+            this.xCrop_lbl.AutoSize = true;
+            this.xCrop_lbl.Location = new System.Drawing.Point(95, 16);
+            this.xCrop_lbl.Name = "xCrop_lbl";
+            this.xCrop_lbl.Size = new System.Drawing.Size(32, 13);
+            this.xCrop_lbl.TabIndex = 5;
+            this.xCrop_lbl.Text = "xMax";
+            // 
+            // yCrop_lbl
+            // 
+            this.yCrop_lbl.AutoSize = true;
+            this.yCrop_lbl.Location = new System.Drawing.Point(95, 42);
+            this.yCrop_lbl.Name = "yCrop_lbl";
+            this.yCrop_lbl.Size = new System.Drawing.Size(32, 13);
+            this.yCrop_lbl.TabIndex = 5;
+            this.yCrop_lbl.Text = "yMax";
             // 
             // T_lbl
             // 
@@ -240,6 +356,16 @@
             this.dim_lbl.Text = "label1";
             this.dim_lbl.Visible = false;
             // 
+            // plotRaw_btn
+            // 
+            this.plotRaw_btn.Location = new System.Drawing.Point(79, 213);
+            this.plotRaw_btn.Name = "plotRaw_btn";
+            this.plotRaw_btn.Size = new System.Drawing.Size(75, 23);
+            this.plotRaw_btn.TabIndex = 4;
+            this.plotRaw_btn.Text = "Plot RAW";
+            this.plotRaw_btn.UseVisualStyleBackColor = true;
+            this.plotRaw_btn.Click += new System.EventHandler(this.plotRaw_btn_Click);
+            // 
             // gridPA_grpBox
             // 
             this.gridPA_grpBox.Controls.Add(this.exportPA_btn);
@@ -247,6 +373,7 @@
             this.gridPA_grpBox.Controls.Add(this.generatePA_btn);
             this.gridPA_grpBox.Controls.Add(this.epaSize_lbl);
             this.gridPA_grpBox.Controls.Add(this.paSize_lbl);
+            this.gridPA_grpBox.Controls.Add(this.plotRaw_btn);
             this.gridPA_grpBox.Controls.Add(this.paZ_lbl);
             this.gridPA_grpBox.Controls.Add(this.paY_lbl);
             this.gridPA_grpBox.Controls.Add(this.paX_lbl);
@@ -401,11 +528,13 @@
             this.Controls.Add(this.data_grpbox);
             this.Controls.Add(this.statusStrip1);
             this.Name = "Form1";
-            this.Text = "DSMC data tool v0.2";
+            this.Text = "CFD fields data tool v0.5.2";
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.data_grpbox.ResumeLayout(false);
             this.data_grpbox.PerformLayout();
+            this.crop_grpBox.ResumeLayout(false);
+            this.crop_grpBox.PerformLayout();
             this.gridPA_grpBox.ResumeLayout(false);
             this.gridPA_grpBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gridStep_nud)).EndInit();
@@ -445,6 +574,17 @@
         private System.Windows.Forms.Button exportPA_btn;
         private System.Windows.Forms.Button plotRaw_btn;
         private System.Windows.Forms.Button test_btn;
+        private System.Windows.Forms.GroupBox crop_grpBox;
+        private System.Windows.Forms.TextBox xCrop_txtBox;
+        private System.Windows.Forms.TextBox yCrop_txtBox;
+        private System.Windows.Forms.CheckBox crop_chkBox;
+        private System.Windows.Forms.Label xCrop_lbl;
+        private System.Windows.Forms.Label yCrop_lbl;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox zCrop_txtBox;
+        private System.Windows.Forms.Label zCrop_lbl;
     }
 }
 
