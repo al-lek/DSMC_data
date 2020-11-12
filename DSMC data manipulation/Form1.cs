@@ -16,25 +16,16 @@ using OxyPlot.Series;
 using OxyPlot.Annotations;
 using OxyPlot.WindowsForms;
 
-using Arction.WinForms.Charting;
-using Arction.WinForms.Charting.Axes;
-using Arction.WinForms.Charting.SeriesXY;
-using Arction.WinForms.Charting.EventMarkers;
-using Arction.WinForms.Charting.Titles;
-using Arction.WinForms.Charting.Views.ViewXY;
-using Arction.WinForms.Charting.Series3D;
-using Arction.WinForms.Charting.Views.View3D;
-
 
 namespace DSMC_data_manipulation
 {
     public partial class Form1 : Form
     {
         string fullFileName;
-        List<double> X = new List<double>(); List<double> UX = new List<double>();
-        List<double> Y = new List<double>(); List<double> UY = new List<double>();
-        List<double> Z = new List<double>(); List<double> UZ = new List<double>();
-        List<double> P = new List<double>(); List<double> T = new List<double>();
+        public List<double> X = new List<double>(); public List<double> UX = new List<double>();
+        public List<double> Y = new List<double>(); public List<double> UY = new List<double>();
+        public List<double> Z = new List<double>(); public List<double> UZ = new List<double>();
+        public List<double> P = new List<double>(); public List<double> T = new List<double>();
         double gridStep, maxX, maxY, maxZ;
         Int64 paX, paY, paZ;
         bool D2 = false, D3_full = false, D3_partial = false; 
@@ -48,13 +39,17 @@ namespace DSMC_data_manipulation
         List<double[]> splated;
         List<double> cloudStats = new List<double>();
 
-        // notes //
-        // 1. crop is dirty, works only before loading data
-        // 2. drawing?
+        public event EventHandler DataAltered;
 
         public Form1()
         {
             InitializeComponent();
+
+            xTrans_cmbBox.SelectedIndex = yTrans_cmbBox.SelectedIndex = zTrans_cmbBox.SelectedIndex = 0;
+
+            crop_btn.Click += (s, e) => { crop_data(); calculate_data_stats(); calculate_pa_stats(); };
+
+            transform_btn.Click += (s, e) => { transform_coordinates(); calculate_data_stats(); calculate_pa_stats(); };
         }
 
         private void init_ctrls()
@@ -143,7 +138,6 @@ namespace DSMC_data_manipulation
                 else if (header_line[0] == "X" || header_line[0] == "x")
                 {
                     // resolve collumns assignments
-
                 }
 
                 // find where data start
@@ -166,7 +160,7 @@ namespace DSMC_data_manipulation
             {
                 change_status("Busy: Resolving data.");
                 double tempX, tempY, tempZ = -1;
-                double xCrop = 1e-3 * Convert.ToDouble(xCrop_txtBox.Text), yCrop = 1e-3 * Convert.ToDouble(yCrop_txtBox.Text), zCrop = 1e-3 * Convert.ToDouble(zCrop_txtBox.Text);
+                double xCrop = 1e-3 * Convert.ToDouble(xCropMax_txtBox.Text), yCrop = 1e-3 * Convert.ToDouble(yCropMax_txtBox.Text), zCrop = 1e-3 * Convert.ToDouble(zCropMax_txtBox.Text);
 
                 // karfwta oi stiles
                 int x_col = -1, y_col = -1, z_col = -1, ux_col = -1, uy_col = -1, uz_col = -1, p_col = -1, t_col = -1;
@@ -181,28 +175,12 @@ namespace DSMC_data_manipulation
                     line_no = k;
                     string[] temp = data[line_no].Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
-                    bool point_to_be_ommited = false;
-                    
-                    // raise a flag to ignore data out of croped region
-                    if (crop_chkBox.Checked)
-                    {
-                        tempX = Convert.ToDouble(temp[x_col]); tempY = Convert.ToDouble(temp[y_col]);
-                        if(D3_full || D3_partial) tempZ = Convert.ToDouble(temp[z_col]); 
+                    X.Add(Convert.ToDouble(temp[x_col])); Y.Add(Convert.ToDouble(temp[y_col]));
+                    UX.Add(Convert.ToDouble(temp[ux_col])); UY.Add(Convert.ToDouble(temp[uy_col])); UZ.Add(Convert.ToDouble(temp[uz_col]));
+                    P.Add(Convert.ToDouble(temp[p_col])); T.Add(Convert.ToDouble(temp[t_col]));
+                    if ((D3_full || D3_partial)) Z.Add(Convert.ToDouble(temp[z_col]));
 
-                        if (tempX > xCrop || tempY > yCrop) point_to_be_ommited = true;
-                        else if ((D3_full || D3_partial) && tempZ > zCrop) point_to_be_ommited = true;
-                    }
-
-                    if (!point_to_be_ommited)
-                    {
-                        X.Add(Convert.ToDouble(temp[x_col])); Y.Add(Convert.ToDouble(temp[y_col]));
-                        UX.Add(Convert.ToDouble(temp[ux_col])); UY.Add(Convert.ToDouble(temp[uy_col])); UZ.Add(Convert.ToDouble(temp[uz_col]));
-                        P.Add(Convert.ToDouble(temp[p_col])); T.Add(Convert.ToDouble(temp[t_col]));
-                        if ((D3_full || D3_partial)) Z.Add(Convert.ToDouble(temp[z_col]));
-                    }
-                    
-                    if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));
-                    
+                    if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));                    
                 }
             }
             catch { MessageBox.Show("Error in parsing data. Line: " + line_no.ToString()); reset_toolStrip(); }
@@ -211,8 +189,91 @@ namespace DSMC_data_manipulation
             this.Invoke(new Action(() => calculate_data_stats()));
             this.Invoke(new Action(() => calculate_pa_stats()));
 
-            change_status("Busy: Transforming all coordinates to positive values.");
-            repair_negative_coordinates();
+            change_status("Idle.");
+        }
+
+        private void transform_coordinates()
+        {
+            change_status("Transforming...");
+
+            // get params
+            int[] transforms = new int[3] { xTrans_cmbBox.SelectedIndex, yTrans_cmbBox.SelectedIndex, zTrans_cmbBox.SelectedIndex };
+            List<double>[] data = new List<double>[3] { X, Y, Z };
+
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                // 0. None
+                if (transforms[i] == 0) continue;
+                // 1. shift
+                if (transforms[i] == 1)
+                {
+                    double min = Math.Abs(data[i].Min());
+
+                    for (int j = 0; j < data[i].Count; j++)
+                        data[i][j] = min + data[i][j];
+                }
+                // 2. flip
+                else
+                    for (int j = 0; j < data[i].Count; j++)
+                        data[i][j] = -1.0 * data[i][j];
+            }
+
+            if(DataAltered != null) DataAltered.Invoke(this, EventArgs.Empty);
+            change_status("Idle.");
+        }
+
+        private void crop_data()
+        {
+            if (X.Count == 0) return;
+            change_status("Croping...");
+
+            // get params
+            double xMin = 1e-3 * dParser(xCropMin_txtBox); double xMax = 1e-3 * dParser(xCropMax_txtBox);
+            double yMin = 1e-3 * dParser(yCropMin_txtBox); double yMax = 1e-3 * dParser(yCropMax_txtBox);
+            double zMin = 1e-3 * dParser(zCropMin_txtBox); double zMax = 1e-3 * dParser(zCropMax_txtBox);
+
+            // croped data holders
+            List<double> Xc = new List<double>(); List<double> UXc = new List<double>();
+            List<double> Yc = new List<double>(); List<double> UYc = new List<double>();
+            List<double> Zc = new List<double>(); List<double> UZc = new List<double>();
+            List<double> Pc = new List<double>(); List<double> Tc = new List<double>();
+
+            if (!(D3_full || D3_partial))
+            {
+                for (int i = 0; i < X.Count; i++)
+                {
+                    if ((X[i] >= xMin && X[i] <= xMax) && ((Y[i] >= yMin && Y[i] <= yMax)))
+                    {
+                        Xc.Add(X[i]); Yc.Add(Y[i]);
+                        UXc.Add(UX[i]); UYc.Add(UY[i]); UZc.Add(UZ[i]);
+                        Pc.Add(P[i]); Tc.Add(T[i]);
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < X.Count; i++)
+                {
+                    if ((X[i] >= xMin && X[i] <= xMax) && (Y[i] >= yMin && Y[i] <= yMax) && (Z[i] >= zMin && Z[i] <= zMax))
+                    {
+                        Xc.Add(X[i]); Yc.Add(Y[i]); Zc.Add(Z[i]);
+                        UXc.Add(UX[i]); UYc.Add(UY[i]); UZc.Add(UZ[i]);
+                        Pc.Add(P[i]); Tc.Add(T[i]);
+                    }
+                }
+            }
+
+            X.Clear(); Y.Clear(); Z.Clear();
+            UX.Clear(); UY.Clear(); UZ.Clear();
+            P.Clear(); T.Clear();
+
+            // deep copy
+            X = Xc.ToList(); Y = Yc.ToList(); Z = Zc.ToList();
+            UX = UXc.ToList(); UY = UYc.ToList(); UZ = UZc.ToList();
+            P = Pc.ToList(); T = Tc.ToList();
+
+            if (DataAltered != null) DataAltered.Invoke(this, EventArgs.Empty);
+            change_status("Idle.");
         }
 
         private void calculate_data_stats()
@@ -256,7 +317,7 @@ namespace DSMC_data_manipulation
                 paY = Convert.ToInt32(Math.Ceiling(1000.0 * maxY / gridStep) + 1);
                 paZ = Convert.ToInt32(Math.Ceiling(1000.0 * maxX / gridStep));
 
-                paX_lbl.Text = "Y -> x[gu]: " + paX.ToString(); paY_lbl.Text = "Y -> y[gu]: " + paY.ToString(); paZ_lbl.Text = "X -> z[gu]: " + paZ.ToString();
+                paX_lbl.Text = "Y -> x[gu]: " + paX.ToString(); paY_lbl.Text = "Z -> y[gu]: " + paY.ToString(); paZ_lbl.Text = "X -> z[gu]: " + paZ.ToString();
             }
             else if (D3_full)
             {
@@ -265,7 +326,7 @@ namespace DSMC_data_manipulation
                 paY = Convert.ToInt32(Math.Ceiling(1000.0 * maxY / gridStep) + 1);
                 paZ = Convert.ToInt32(Math.Ceiling(1000.0 * maxX / gridStep));
 
-                paX_lbl.Text = "Z -> x[gu]: " + paX.ToString(); paY_lbl.Text = "Y -> y[gu]: " + paY.ToString(); paZ_lbl.Text = "X -> z[gu]: " + paZ.ToString();
+                paX_lbl.Text = "Z -> x[gu]: " + paX.ToString(); paY_lbl.Text = "Z -> y[gu]: " + paY.ToString(); paZ_lbl.Text = "X -> z[gu]: " + paZ.ToString();
             }
             
             paSize_lbl.Text = "PA size (P,T): " + Math.Round(paX * paY * paZ * 8 / 1e6, 1).ToString() + " MBytes";
@@ -299,33 +360,6 @@ namespace DSMC_data_manipulation
             change_status("Idle.");
 
             if (large_radius + large_zPos != 0) Console.WriteLine("large_radius" + large_radius.ToString() + "large_zPos" + large_zPos.ToString());
-        }
-
-        private void repair_negative_coordinates()
-        {
-            // if negative dimensions exist, shift all coordinates to only positive valaues 
-            double x_min = X.Min(), y_min = Y.Min(), z_min = Z.Min();
-
-            if (x_min < 0 || y_min < 0 || z_min < 0)
-            {
-                if (MessageBox.Show("Negative coordinates detected. Shift all points to positive values?", "Confirm transform", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                {
-                    x_min = Math.Abs(x_min); y_min = Math.Abs(y_min); z_min = Math.Abs(z_min);
-
-                    for (int k = 0; k < X.Count; k++)
-                    {
-                        X[k] += x_min; Y[k] += y_min; Z[k] += z_min;
-
-                        if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count));
-                    }
-                }
-            }
-
-            // have to recalculate all stats, especially for PA dimensions
-            this.Invoke(new Action(() => calculate_data_stats()));
-            this.Invoke(new Action(() => calculate_pa_stats()));
-
-            change_status("Idle.");
         }
                 
         private void map_particles_to_2DgridPoins()
@@ -622,86 +656,20 @@ namespace DSMC_data_manipulation
 
         private void plotRaw_btn_Click(object sender, EventArgs e)
         {
-            //initialize_oxyPlotWindow();
-
-            Charting ch = new Charting();
+            Charting ch = new Charting() { mainForm = this };
             ch.Initialize_plot();
-        }
-
-        private void initialize_oxyPlotWindow()
-        {
-            // 1. Define holder window
-            Form popUp = new Form()
-            {
-                Text = "Raw Data Plot",
-                FormBorderStyle = FormBorderStyle.FixedToolWindow,
-                MaximizeBox = false,
-                MinimizeBox = false,
-                StartPosition = FormStartPosition.CenterScreen, 
-                Size = new Size(800, 800),
-                AutoSize = true
-                //TopMost = true
-            };
-
-            // 2. define additional controls
-            Button plot_btn = new Button() { Text = "Plot", Size = new Size(50, 23), Location = new Point(720, 740), Anchor = (AnchorStyles.Bottom | AnchorStyles.Right)};
-            plot_btn.Click += (s, e) => { plot_data(popUp.Controls.OfType<PlotView>().FirstOrDefault(), popUp.Controls.OfType<ComboBox>().FirstOrDefault().SelectedText); };      // pass plot and data to draw
-            popUp.Controls.Add(plot_btn);
-
-            string[] items = new string[] { "Ux", "Uy", "Uz", "P", "T" };
-            ComboBox axis_cmbBox = new ComboBox() { Size = new Size(40, 21), Location = new Point(650, 741), DataSource = items, DropDownStyle = ComboBoxStyle.DropDownList, Anchor = (AnchorStyles.Bottom | AnchorStyles.Right) };
-            popUp.Controls.Add(axis_cmbBox);
-
-            // 3. define oxyplot properties
-            PlotView oxyPlotView = new PlotView() { Name = "", Size = new Size(780, 720), BackColor = Color.WhiteSmoke };
-            SuspendLayout();
-
-            PlotModel oxyModelPlot = new PlotModel { PlotType = PlotType.XY, IsLegendVisible = true, LegendPosition = LegendPosition.BottomLeft, LegendFontSize = 11, TitleFontSize = 11 };
-
-            var linearAxis1 = new OxyPlot.Axes.LinearAxis() { MajorGridlineStyle = OxyPlot.LineStyle.Solid, Title = "Y [mm]", MinorGridlineStyle = OxyPlot.LineStyle.Solid, Maximum = Y.Max() };
-            oxyModelPlot.Axes.Add(linearAxis1);
-
-            var linearAxis2 = new OxyPlot.Axes.LinearAxis() { MajorGridlineStyle = OxyPlot.LineStyle.Solid, Title = "X [mm]", Position = OxyPlot.Axes.AxisPosition.Bottom, Maximum = X.Max() };
-            oxyModelPlot.Axes.Add(linearAxis2);
-
-            oxyPlotView.Model = oxyModelPlot;
-
-            popUp.Controls.Add(oxyPlotView);
-            popUp.Show();
-        }
-
-        private void plot_data(PlotView plot, string values_to_plot)
-        {
-            plot.Model.Series.Clear();
-
-            //ContourSeries contour = new ContourSeries();
-            show_progress(true);
-
-            for (int i = 0; i < X.Count; i++)
-            {
-                PointAnnotation pnt = new PointAnnotation() { X = X[i], Y = Y[i], Size = 1, Shape = MarkerType.Circle, Fill = OxyColors.Black, Stroke = OxyColors.Red};
-                plot.Model.Annotations.Add(pnt);
-
-                this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * i) / X.Count));
-            }
-
-            show_progress(false);
-
         }
 
         #endregion
 
         #region helpers
+        private double dParser(TextBox txtBox)
+        {
+            return Convert.ToDouble(txtBox.Text);
+        }
         private void change_status(string statusText)
         {
             this.Invoke(new Action(() => status.Text = statusText));
-        }
-
-        private void crop_chkBox_CheckedChanged(object sender, EventArgs e)
-        {
-            xCrop_txtBox.Enabled = yCrop_txtBox.Enabled = zCrop_txtBox.Enabled = crop_chkBox.Checked;
-
-            if (crop_chkBox.Checked) MessageBox.Show("First set maximum (crop) values for x and y,\r\nand then reload data to for the cropping to take effect!");
         }
 
         private void show_progress(bool visible)
