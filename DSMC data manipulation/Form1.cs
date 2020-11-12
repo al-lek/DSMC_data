@@ -156,34 +156,34 @@ namespace DSMC_data_manipulation
 
             int line_no = 0;    //used to trace line error
             show_progress(true);
-            try
+            change_status("Busy: Resolving data.");
+
+            double xCrop = 1e-3 * Convert.ToDouble(xCropMax_txtBox.Text), yCrop = 1e-3 * Convert.ToDouble(yCropMax_txtBox.Text), zCrop = 1e-3 * Convert.ToDouble(zCropMax_txtBox.Text);
+
+            // karfwta oi stiles
+            int x_col = -1, y_col = -1, z_col = -1, ux_col = -1, uy_col = -1, uz_col = -1, p_col = -1, t_col = -1;
+
+            if (solver == "sparta" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 2; uy_col = 3; uz_col = 4; p_col = 5; t_col = 6; }
+            else if (solver == "sparta" && D3_full) { x_col = 0; y_col = 1; z_col = 2; ux_col = 3; uy_col = 4; uz_col = 5; p_col = 6; t_col = 7; }
+            else if (solver == "cfx" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
+            else if (solver == "cfx" && D3_partial) { x_col = 0; y_col = 1; z_col = 2; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
+
+            for (int k = data_start_line_no; k < data.Count; k++)
             {
-                change_status("Busy: Resolving data.");
-                double tempX, tempY, tempZ = -1;
-                double xCrop = 1e-3 * Convert.ToDouble(xCropMax_txtBox.Text), yCrop = 1e-3 * Convert.ToDouble(yCropMax_txtBox.Text), zCrop = 1e-3 * Convert.ToDouble(zCropMax_txtBox.Text);
-
-                // karfwta oi stiles
-                int x_col = -1, y_col = -1, z_col = -1, ux_col = -1, uy_col = -1, uz_col = -1, p_col = -1, t_col = -1;
-
-                if (solver == "sparta" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 2; uy_col = 3; uz_col = 4; p_col = 5; t_col = 6; }
-                else if (solver == "sparta" && D3_full) { x_col = 0; y_col = 1; z_col = 2; ux_col = 3; uy_col = 4; uz_col = 5; p_col = 6; t_col = 7; }
-                else if (solver == "cfx" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
-                else if (solver == "cfx" && D3_partial) { x_col = 0; y_col = 1; z_col = 2; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
-
-                for (int k = data_start_line_no; k < data.Count; k++)
+                line_no = k;
+                string[] temp = data[line_no].Split(new[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                try
                 {
-                    line_no = k;
-                    string[] temp = data[line_no].Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
-
                     X.Add(Convert.ToDouble(temp[x_col])); Y.Add(Convert.ToDouble(temp[y_col]));
                     UX.Add(Convert.ToDouble(temp[ux_col])); UY.Add(Convert.ToDouble(temp[uy_col])); UZ.Add(Convert.ToDouble(temp[uz_col]));
                     P.Add(Convert.ToDouble(temp[p_col])); T.Add(Convert.ToDouble(temp[t_col]));
                     if ((D3_full || D3_partial)) Z.Add(Convert.ToDouble(temp[z_col]));
-
-                    if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));                    
                 }
+                catch { MessageBox.Show("Error in parsing data. Line: " + line_no.ToString() + "\r\n" + data[line_no]); }
+
+                if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / data.Count));
             }
-            catch { MessageBox.Show("Error in parsing data. Line: " + line_no.ToString()); reset_toolStrip(); }
+
             data.Clear();
             reset_toolStrip();
             this.Invoke(new Action(() => calculate_data_stats()));

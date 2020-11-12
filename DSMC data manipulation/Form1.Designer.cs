@@ -46,6 +46,7 @@
             this.zCropMin_txtBox = new System.Windows.Forms.TextBox();
             this.xCropMax_txtBox = new System.Windows.Forms.TextBox();
             this.zCropMax_txtBox = new System.Windows.Forms.TextBox();
+            this.crop_btn = new System.Windows.Forms.Button();
             this.yCropMax_txtBox = new System.Windows.Forms.TextBox();
             this.yCropMin_txtBox = new System.Windows.Forms.TextBox();
             this.zCrop_lbl = new System.Windows.Forms.Label();
@@ -75,7 +76,6 @@
             this.gridStep_nud = new System.Windows.Forms.NumericUpDown();
             this.grid_lbl = new System.Windows.Forms.Label();
             this.test_btn = new System.Windows.Forms.Button();
-            this.crop_btn = new System.Windows.Forms.Button();
             this.statusStrip1.SuspendLayout();
             this.data_grpbox.SuspendLayout();
             this.transform_grpBox.SuspendLayout();
@@ -295,6 +295,16 @@
             this.zCropMax_txtBox.TabIndex = 5;
             this.zCropMax_txtBox.Text = "15";
             this.zCropMax_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // crop_btn
+            // 
+            this.crop_btn.Location = new System.Drawing.Point(136, 128);
+            this.crop_btn.Margin = new System.Windows.Forms.Padding(4);
+            this.crop_btn.Name = "crop_btn";
+            this.crop_btn.Size = new System.Drawing.Size(88, 28);
+            this.crop_btn.TabIndex = 4;
+            this.crop_btn.Text = "Crop";
+            this.crop_btn.UseVisualStyleBackColor = true;
             // 
             // yCropMax_txtBox
             // 
@@ -644,16 +654,6 @@
             this.test_btn.UseVisualStyleBackColor = true;
             this.test_btn.Click += new System.EventHandler(this.test_btn_Click);
             // 
-            // crop_btn
-            // 
-            this.crop_btn.Location = new System.Drawing.Point(136, 128);
-            this.crop_btn.Margin = new System.Windows.Forms.Padding(4);
-            this.crop_btn.Name = "crop_btn";
-            this.crop_btn.Size = new System.Drawing.Size(88, 28);
-            this.crop_btn.TabIndex = 4;
-            this.crop_btn.Text = "Crop";
-            this.crop_btn.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -665,7 +665,7 @@
             this.Controls.Add(this.statusStrip1);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
-            this.Text = "CFD fields data tool v0.6";
+            this.Text = "b";
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.data_grpbox.ResumeLayout(false);

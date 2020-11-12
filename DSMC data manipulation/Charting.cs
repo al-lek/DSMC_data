@@ -211,9 +211,9 @@ namespace DSMC_data_manipulation
             //for (int i = 0; i < prop_points.Count; i++)
             //    sp3D[i] = new SeriesPoint3D { X = mainForm.X[i], Y = mainForm.Y[i], Z = mainForm.Z[i] };
             //pls3D.AddPoints(sp3D, false);            
-            SeriesPoint3D[] sp3D = new SeriesPoint3D[prop_points.Count / 10];
-            for (int i = 0; i < prop_points.Count / 10; i++)
-                sp3D[i] = new SeriesPoint3D { X = mainForm.X[i * 10], Y = mainForm.Y[i * 10], Z = mainForm.Z[i * 10] };
+            SeriesPoint3D[] sp3D = new SeriesPoint3D[prop_points.Count / 1000];
+            for (int i = 0; i < prop_points.Count / 1000; i++)
+                sp3D[i] = new SeriesPoint3D { X = mainForm.X[i * 1000], Y = mainForm.Y[i * 1000], Z = mainForm.Z[i * 1000] };
             pls3D.AddPoints(sp3D, false);
 
             LC.View3D.XAxisPrimary3D.SetRange(mainForm.X.Min(), mainForm.X.Max());
