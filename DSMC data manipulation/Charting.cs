@@ -128,6 +128,8 @@ namespace DSMC_data_manipulation
             freePLS.PointStyle.Color1 = Color.FromArgb(200, Color.DarkOrange);
             freePLS.PointStyle.BorderWidth = 1;
             freePLS.PointStyle.GradientFill = GradientFillPoint.Solid;
+            freePLS.MouseInteraction = false;
+            freePLS.MouseHighlight = MouseOverHighlight.None;
 
             if (LC.ViewXY.FreeformPointLineSeries.Count == 0) LC.ViewXY.FreeformPointLineSeries.Add(freePLS);
             else { LC.ViewXY.FreeformPointLineSeries[0].Clear(); LC.ViewXY.FreeformPointLineSeries[0] = freePLS; }

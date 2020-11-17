@@ -91,7 +91,7 @@
             this.importData_btn.Name = "importData_btn";
             this.importData_btn.Size = new System.Drawing.Size(155, 28);
             this.importData_btn.TabIndex = 0;
-            this.importData_btn.Text = "Import DSMC Data";
+            this.importData_btn.Text = "Import Data";
             this.importData_btn.UseVisualStyleBackColor = true;
             this.importData_btn.Click += new System.EventHandler(this.importData_btn_Click);
             // 
@@ -263,7 +263,7 @@
             this.xCropMin_txtBox.Name = "xCropMin_txtBox";
             this.xCropMin_txtBox.Size = new System.Drawing.Size(44, 22);
             this.xCropMin_txtBox.TabIndex = 5;
-            this.xCropMin_txtBox.Text = "0";
+            this.xCropMin_txtBox.Text = "53.5";
             this.xCropMin_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // zCropMin_txtBox
@@ -273,7 +273,7 @@
             this.zCropMin_txtBox.Name = "zCropMin_txtBox";
             this.zCropMin_txtBox.Size = new System.Drawing.Size(44, 22);
             this.zCropMin_txtBox.TabIndex = 5;
-            this.zCropMin_txtBox.Text = "0";
+            this.zCropMin_txtBox.Text = "-5";
             this.zCropMin_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // xCropMax_txtBox
@@ -283,7 +283,7 @@
             this.xCropMax_txtBox.Name = "xCropMax_txtBox";
             this.xCropMax_txtBox.Size = new System.Drawing.Size(44, 22);
             this.xCropMax_txtBox.TabIndex = 5;
-            this.xCropMax_txtBox.Text = "10";
+            this.xCropMax_txtBox.Text = "178.5";
             this.xCropMax_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // zCropMax_txtBox
@@ -293,7 +293,7 @@
             this.zCropMax_txtBox.Name = "zCropMax_txtBox";
             this.zCropMax_txtBox.Size = new System.Drawing.Size(44, 22);
             this.zCropMax_txtBox.TabIndex = 5;
-            this.zCropMax_txtBox.Text = "15";
+            this.zCropMax_txtBox.Text = "0";
             this.zCropMax_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // crop_btn
@@ -313,7 +313,7 @@
             this.yCropMax_txtBox.Name = "yCropMax_txtBox";
             this.yCropMax_txtBox.Size = new System.Drawing.Size(44, 22);
             this.yCropMax_txtBox.TabIndex = 5;
-            this.yCropMax_txtBox.Text = "6";
+            this.yCropMax_txtBox.Text = "5";
             this.yCropMax_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // yCropMin_txtBox
@@ -323,7 +323,7 @@
             this.yCropMin_txtBox.Name = "yCropMin_txtBox";
             this.yCropMin_txtBox.Size = new System.Drawing.Size(44, 22);
             this.yCropMin_txtBox.TabIndex = 5;
-            this.yCropMin_txtBox.Text = "0";
+            this.yCropMin_txtBox.Text = "-5";
             this.yCropMin_txtBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // zCrop_lbl
@@ -665,7 +665,7 @@
             this.Controls.Add(this.statusStrip1);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
-            this.Text = "b";
+            this.Text = "CFD data conversion v0.9";
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.data_grpbox.ResumeLayout(false);

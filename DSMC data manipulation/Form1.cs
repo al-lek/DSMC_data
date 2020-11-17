@@ -28,9 +28,11 @@ namespace DSMC_data_manipulation
         public List<double> P = new List<double>(); public List<double> T = new List<double>();
         double gridStep, maxX, maxY, maxZ;
         Int64 paX, paY, paZ;
-        bool D2 = false, D3_full = false, D3_partial = false; 
+        bool D2 = false, D3_full = false, D3_partial = false;
         object[][] Ux_2d, Uy_2d, Uz_2d, P_2d, T_2d;
         double[][][] Ux_3d, Uy_3d, Uz_3d, P_3d, T_3d;
+        double[][][] Ux_3d_count, Uy_3d_count, Uz_3d_count, P_3d_count, T_3d_count;
+        List<int[]> empty_idxs;
         Random rand = new Random();
         int large_radius = 0;
         int large_zPos = 0;
@@ -91,7 +93,7 @@ namespace DSMC_data_manipulation
             // Set the path, and create if not existing 
             string directoryPath = "C:\\Users\\Alex\\zoltan";
 
-            OpenFileDialog loadSettings = new OpenFileDialog() { RestoreDirectory = true, InitialDirectory = directoryPath, Filter = "Data files|*.dat|All files|*.*" };
+            OpenFileDialog loadSettings = new OpenFileDialog() { RestoreDirectory = true, InitialDirectory = directoryPath, Filter = "Fluent Data|*.csv|DSMC data|*.dat|All files|*.*" };
 
             if (loadSettings.ShowDialog() == DialogResult.OK)
             {
@@ -102,7 +104,7 @@ namespace DSMC_data_manipulation
                 // 2. start a background thread to load data
                 Thread worker = new Thread(() => load_data_worker(data, loadSettings.FileName));
                 worker.Start();
-            }            
+            }
         }
 
         private void load_data_worker(List<string> data, string path)
@@ -126,14 +128,14 @@ namespace DSMC_data_manipulation
             // 
             int data_start_line_no = 0;
             double num;
-            string[] header_line; 
+            string[] header_line;
 
             for (int k = 0; k < data.Count; k++)
             {
                 header_line = data[k].Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                 // get rid of empty lines
-                if (header_line.Length == 0) { continue; }          
+                if (header_line.Length == 0) { continue; }
 
                 else if (header_line[0] == "X" || header_line[0] == "x")
                 {
@@ -150,7 +152,7 @@ namespace DSMC_data_manipulation
             string[] dataStruct = data[data_start_line_no].Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (dataStruct.Length == 7) D2 = true;
             else if (dataStruct.Length == 8 && solver == "cfx" && Convert.ToDouble(dataStruct[2]) == 0.0) D2 = true;
-            else if (dataStruct.Length == 8 && solver == "cfx" && Convert.ToDouble(dataStruct[2]) != 0.0) D3_partial = true;
+            else if (dataStruct.Length == 8 && solver == "cfx" && Convert.ToDouble(dataStruct[2]) != 0.0) D3_full = true;
             else if (dataStruct.Length == 8) D3_full = true;
             else { MessageBox.Show("Wrong file format. "); return; }
 
@@ -166,7 +168,7 @@ namespace DSMC_data_manipulation
             if (solver == "sparta" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 2; uy_col = 3; uz_col = 4; p_col = 5; t_col = 6; }
             else if (solver == "sparta" && D3_full) { x_col = 0; y_col = 1; z_col = 2; ux_col = 3; uy_col = 4; uz_col = 5; p_col = 6; t_col = 7; }
             else if (solver == "cfx" && D2) { x_col = 0; y_col = 1; z_col = -1; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
-            else if (solver == "cfx" && D3_partial) { x_col = 0; y_col = 1; z_col = 2; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
+            else if (solver == "cfx" && D3_full) { x_col = 0; y_col = 1; z_col = 2; ux_col = 5; uy_col = 6; uz_col = 7; p_col = 3; t_col = 4; }
 
             for (int k = data_start_line_no; k < data.Count; k++)
             {
@@ -207,7 +209,7 @@ namespace DSMC_data_manipulation
                 // 1. shift
                 if (transforms[i] == 1)
                 {
-                    double min = Math.Abs(data[i].Min());
+                    double min = -1.0 * data[i].Min();
 
                     for (int j = 0; j < data[i].Count; j++)
                         data[i][j] = min + data[i][j];
@@ -218,7 +220,7 @@ namespace DSMC_data_manipulation
                         data[i][j] = -1.0 * data[i][j];
             }
 
-            if(DataAltered != null) DataAltered.Invoke(this, EventArgs.Empty);
+            if (DataAltered != null) DataAltered.Invoke(this, EventArgs.Empty);
             change_status("Idle.");
         }
 
@@ -305,7 +307,7 @@ namespace DSMC_data_manipulation
         #endregion
 
         #region construct grids, assign particles, calculate stats
-        
+
         private void calculate_pa_stats()
         {
             gridStep = Convert.ToDouble(gridStep_nud.Value);
@@ -328,7 +330,7 @@ namespace DSMC_data_manipulation
 
                 paX_lbl.Text = "Z -> x[gu]: " + paX.ToString(); paY_lbl.Text = "Z -> y[gu]: " + paY.ToString(); paZ_lbl.Text = "X -> z[gu]: " + paZ.ToString();
             }
-            
+
             paSize_lbl.Text = "PA size (P,T): " + Math.Round(paX * paY * paZ * 8 / 1e6, 1).ToString() + " MBytes";
             epaSize_lbl.Text = "EPA size (V): " + Math.Round(paX * paY * paZ * 8 * 4 / 1e6, 1).ToString() + " MBytes";
         }
@@ -349,19 +351,30 @@ namespace DSMC_data_manipulation
         {
             // 1. assign particles to grid
             show_progress(true);
-            change_status("Busy: Maping particles to grid.");
+            change_status("Busy: Maping particles to grid...");
             if (D2 || D3_partial) map_particles_to_2DgridPoins();
-            if (D3_full) map_particles_to_3DgridPoins();
+            if (D3_full)
+            {
+                map_particles_to_3DgridPoins_inter();
+
+                show_progress(true);
+                change_status("Busy: Intrerpolating to fill empty cells...");
+
+                get_emptyStats();
+
+                interpolate_toFillEmpty3D();                
+            }
             show_progress(false);
 
             // 2. convert (rotate) 2D -> 3D
             if (D2 || D3_partial) { change_status("Busy: Converting from 2D to 3D."); convert_2D_to_3D(); }
-            
             change_status("Idle.");
 
             if (large_radius + large_zPos != 0) Console.WriteLine("large_radius" + large_radius.ToString() + "large_zPos" + large_zPos.ToString());
+
+            get_emptyStats();
         }
-                
+
         private void map_particles_to_2DgridPoins()
         {
             large_radius = 0; // mesures particles that fall outside maxY beacuse they have a large z. This happens because data are not a cylindrical sector, but a triangle.
@@ -382,7 +395,7 @@ namespace DSMC_data_manipulation
             }
 
             // 2. run through each point and find the appropriate gridPoint to map it in 2D
-            for (int k = 0; k < X.Count; k++)       
+            for (int k = 0; k < X.Count; k++)
             {
                 int xPos = 0;
                 if (D2) xPos = Convert.ToInt32(Math.Floor(Y[k] / gridStep * 1000.0));
@@ -421,7 +434,7 @@ namespace DSMC_data_manipulation
             }
         }
 
-        private void map_particles_to_3DgridPoins()
+        private void map_particles_to_3DgridPoins_inter()
         {
             // Create two 3D arrays for each Ux Uy Uz P T. Each cell corresponds to a grid point,
             // and the first array will hold all particles that are in the vicinity of the gridPoint.
@@ -429,9 +442,10 @@ namespace DSMC_data_manipulation
             // It is used for calculating mean value. StDev is not required.
             // X -> z, Z -> x, Y -> y
 
-            double[][][] Ux_3d_count, Uy_3d_count, Uz_3d_count, P_3d_count, T_3d_count;     // declare inside method to help garbage collector?
+            // [2020 rework] will assign a particle to all 8 edges of cube. Helps to have less grid points with no particles assigned
+            // needs upgrade with weight factors!!
 
-            // 1. initilize 3d arrays
+            // 1. initialize 3d arrays
             Ux_3d = new double[paX][][]; Uy_3d = new double[paX][][]; Uz_3d = new double[paX][][]; P_3d = new double[paX][][]; T_3d = new double[paX][][];
             Ux_3d_count = new double[paX][][]; Uy_3d_count = new double[paX][][]; Uz_3d_count = new double[paX][][]; P_3d_count = new double[paX][][]; T_3d_count = new double[paX][][];
             for (int i = 0; i < paX; i++)
@@ -453,16 +467,15 @@ namespace DSMC_data_manipulation
                 int yPos = Convert.ToInt32(Math.Floor(Y[k] / gridStep * 1000.0));
                 int zPos = Convert.ToInt32(Math.Floor(X[k] / gridStep * 1000.0));
 
-                Ux_3d[xPos][yPos][zPos] += UZ[k]; Ux_3d_count[xPos][yPos][zPos] += 1;
-                Uy_3d[xPos][yPos][zPos] += UY[k]; Uy_3d_count[xPos][yPos][zPos] += 1;
-                Uz_3d[xPos][yPos][zPos] += UX[k]; Uz_3d_count[xPos][yPos][zPos] += 1;
-                P_3d[xPos][yPos][zPos] += P[k]; P_3d_count[xPos][yPos][zPos] += 1;
-                T_3d[xPos][yPos][zPos] += T[k]; T_3d_count[xPos][yPos][zPos] += 1;
+                pointInfo_toCube(xPos, yPos, zPos, Ux_3d, UZ[k], Ux_3d_count);
+                pointInfo_toCube(xPos, yPos, zPos, Uy_3d, UY[k], Uy_3d_count);
+                pointInfo_toCube(xPos, yPos, zPos, Uz_3d, UX[k], Uz_3d_count);
+                pointInfo_toCube(xPos, yPos, zPos, P_3d, P[k], P_3d_count);
+                pointInfo_toCube(xPos, yPos, zPos, T_3d, T[k], T_3d_count);
 
-                //try { if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count)); }
-                //catch { }
+                try { if (k % 1000 == 0) this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * k) / X.Count)); }
+                catch { }
             }
-
 
             // 3. calculate mean value for each gridPoint
             for (int i = 0; i < paX; i++)
@@ -478,9 +491,128 @@ namespace DSMC_data_manipulation
                         T_3d[i][j][k] = safeDiv(T_3d[i][j][k], T_3d_count[i][j][k]);
                     }
                 }
-
                 //this.Invoke(new Action(() => toolStripProgressBar1.ProgressBar.Value = (100 * i) / Convert.ToInt32(paX)));
             }
+            reset_toolStrip();
+        }
+
+        private void pointInfo_toCube(int xPos, int yPos, int zPos, double[][][] target, double pointInfo, double[][][] counter)
+        {
+            int xDim = target.Length;
+            int yDim = target[0].Length;
+            int zDim = target[0][0].Length;
+
+            target[xPos][yPos][zPos] += pointInfo;
+            counter[xPos][yPos][zPos] += 1;
+
+            if (yPos + 1 < yDim)
+            {
+                target[xPos][yPos + 1][zPos] += pointInfo;
+                counter[xPos][yPos + 1][zPos] += 1;
+            }
+            if (xPos + 1 < xDim)
+            {
+                target[xPos + 1][yPos][zPos] += pointInfo;
+                counter[xPos + 1][yPos][zPos] += 1;
+            }
+            if (xPos + 1 < xDim && yPos + 1 < yDim)
+            {
+                target[xPos + 1][yPos + 1][zPos] += pointInfo;
+                counter[xPos + 1][yPos + 1][zPos] += 1;
+            }
+
+            if (zPos + 1 < zDim)
+            {
+                target[xPos][yPos][zPos + 1] += pointInfo;
+                counter[xPos][yPos][zPos + 1] += 1;
+
+                if (yPos + 1 < yDim)
+                {
+                    target[xPos][yPos + 1][zPos + 1] += pointInfo;
+                    counter[xPos][yPos + 1][zPos + 1] += 1;
+                }
+                if (xPos + 1 < xDim)
+                {
+                    target[xPos + 1][yPos][zPos + 1] += pointInfo;
+                    counter[xPos + 1][yPos][zPos + 1] += 1;
+                }
+                if (xPos + 1 < xDim && yPos + 1 < yDim)
+                {
+                    target[xPos + 1][yPos + 1][zPos + 1] += pointInfo;
+                    counter[xPos + 1][yPos + 1][zPos + 1] += 1;
+                }
+            }
+        }
+
+        private void interpolate_toFillEmpty3D()
+        {
+            detect_empty3D(T_3d);
+
+            List<int[]> empty_idxs_fixed = new List<int[]>();
+
+            while (empty_idxs_fixed.Count < empty_idxs.Count)
+            {
+                for (int p = 0; p < empty_idxs.Count; p++)
+                    if (interpolate_3Dpoint(empty_idxs[p]))
+                        empty_idxs_fixed.Add(empty_idxs[p]);
+            }
+        }
+
+        private bool interpolate_3Dpoint(int[] empty_idx)
+        {
+            int xDim = T_3d.Length;
+            int yDim = T_3d[0].Length;
+            int zDim = T_3d[0][0].Length;
+
+            int i = empty_idx[0];
+            int j = empty_idx[1];
+            int k = empty_idx[2];
+
+            double[] tmp = new double[5];
+            int neighbors = 0;
+
+            if (k > 0)
+            {
+                if (i > 0)
+                {
+                    if (j > 0) { if (T_3d[i - 1][j - 1][k - 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i - 1, j - 1, k - 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                    if (j + 1 < yDim) { if (T_3d[i - 1][j + 1][k - 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i - 1, j + 1, k - 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                }
+                if (i + 1 < xDim)
+                {
+                    if (j > 0) { if (T_3d[i + 1][j - 1][k - 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i + 1, j - 1, k - 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                    if (j + 1 < yDim) { if (T_3d[i + 1][j + 1][k - 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i + 1, j + 1, k - 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                }
+            }
+            if (k + 1 < zDim)
+            {
+                if (i > 0)
+                {
+                    if (j > 0) { if (T_3d[i - 1][j - 1][k + 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i - 1, j - 1, k + 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                    if (j + 1 < yDim) { if (T_3d[i - 1][j + 1][k + 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i - 1, j + 1, k + 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                }
+                if (i + 1 < xDim)
+                {
+                    if (j > 0) { if (T_3d[i + 1][j - 1][k + 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i + 1, j - 1, k + 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                    if (j + 1 < yDim) { if (T_3d[i + 1][j + 1][k + 1] > 0) { tmp = tmp.Zip(get_neighboor_values(i + 1, j + 1, k + 1), (x, y) => x + y).ToArray(); neighbors++; } }
+                }
+            }
+
+            if (neighbors > 0)
+            {
+                Ux_3d[i][j][k] = tmp[0] / neighbors;
+                Uy_3d[i][j][k] = tmp[1] / neighbors;
+                Uz_3d[i][j][k] = tmp[2] / neighbors;
+                P_3d[i][j][k] = tmp[3] / neighbors;
+                T_3d[i][j][k] = tmp[4] / neighbors;
+                return true;
+            }
+            else return false;
+        }
+
+        private double[] get_neighboor_values(int x, int y, int z)
+        {
+            return new double[5] { Ux_3d[x][y][z], Uy_3d[x][y][z], Uz_3d[x][y][z], P_3d[x][y][z], T_3d[x][y][z] };
         }
 
         private void convert_2D_to_3D()
@@ -526,26 +658,39 @@ namespace DSMC_data_manipulation
             Ux_2d = new object[0][]; Uy_2d = new object[0][]; Uz_2d = new object[0][]; P_2d = new object[0][]; T_2d = new object[0][];
         }
 
-        private void correct_empty_gridPoints(object[][] data)
+        private int detect_empty3D(double[][][] data)
         {
-            // 
-            int countBlancs = 0, countNaN = 0;
+            empty_idxs = new List<int[]>();
 
-            for (int i = 0; i < data.GetLength(0); i++)
-                for (int j = 0; j < data[i].GetLength(0); j++)
-                {
-                    if (((List<double>)data[i][j]).Count == 0)
-                    {
-                        countBlancs++;
-                        ((List<double>)data[i][j]).Add(5.5);
-                    }
+            for (int i = 0; i < data.Length; i++)
+                for (int j = 0; j < data[i].Length; j++)
+                    for (int k = 0; k < data[i][j].Length; k++)
+                        if (data[i][j][k] == 0.0) empty_idxs.Add(new int[3] { i, j, k });
 
-                    if (double.IsNaN(((List<double>)data[i][j])[0]))
-                        countNaN++;
-                }
-
-            Console.WriteLine("total blancs detected: " + countBlancs.ToString() + " total NaNs: " + countNaN.ToString());
+            return empty_idxs.Count;
         }
+
+        private void get_emptyStats()
+        {
+            Console.WriteLine("empty points on Ux: " + detect_empty3D(Ux_3d).ToString());
+            Console.WriteLine("empty points on Uy: " + detect_empty3D(Uy_3d).ToString());
+            Console.WriteLine("empty points on Uz: " + detect_empty3D(Uz_3d).ToString());
+            Console.WriteLine("empty points on P: " + detect_empty3D(P_3d).ToString());
+            Console.WriteLine("empty points on T: " + detect_empty3D(T_3d).ToString());
+        }
+
+    private void sum_jagged(double[][][] data)
+        {
+            double count = 0;
+
+            for (int i = 0; i < data.Length; i++)
+                for (int j = 0; j < data[i].Length; j++)
+                    for (int k = 0; k < data[i][j].Length; k++)
+                        count += data[i][j][k];
+
+            Console.WriteLine("Total points: " + count.ToString());
+        }
+
 
         private double nearestNeighboors(object map2d, int x, int y)
         {
